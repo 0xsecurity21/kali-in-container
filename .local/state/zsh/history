@@ -1,0 +1,13 @@
+cd /workspace
+docker compose ps
+vpn-connect htb/profile.ovpn
+ech $SHELL
+echo $SHELL
+id
+unam -m
+uname -a
+ls
+cat ~/.zshrc
+cat ~/.zsh_history
+clear
+exit

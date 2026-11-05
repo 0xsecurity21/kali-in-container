@@ -1,0 +1,1 @@
+myip() { ip -brief address; }

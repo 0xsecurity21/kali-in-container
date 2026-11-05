@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+[[ $# -eq 1 ]] || { echo "Usage: htb <machine-name>" >&2; exit 2; }
+path="$HOME/Documents/HTB/machines/$1"
+mkdir -p "$path"
+printf '# %s\n' "$1" > "$path/notes.md"
+cd "$path"
+exec "${SHELL:-/bin/zsh}"

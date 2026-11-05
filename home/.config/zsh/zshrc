@@ -1,0 +1,12 @@
+# Loaded from ~/.zshrc after Kali's default configuration.
+# Keep personal shell modules in this persistent directory.
+export PATH="/opt/custom-tools/bin:$HOME/.local/bin:$PATH"
+# Keep a visible, persistent Zsh history alongside the rest of the Zsh config.
+export HISTFILE="$HOME/.config/zsh/.zsh_history"
+export HISTSIZE=10000
+export SAVEHIST=10000
+
+for file in "$HOME/.config/zsh"/config/*.zsh "$HOME/.config/zsh"/functions/*.zsh; do
+  [[ -r "$file" ]] && source "$file"
+done
+[[ -r "$HOME/.config/zsh/local.zsh" ]] && source "$HOME/.config/zsh/local.zsh"

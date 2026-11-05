@@ -1,19 +1,20 @@
 {
-  "name": "Kali CTF Toolkit",
-  "build": {
-    "dockerfile": "../Dockerfile",
-    "context": ".."
-  },
-  "workspaceFolder": "/workspaces/ctf",
-  "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/ctf,type=bind,consistency=cached",
-  "remoteUser": "ctf",
-  "updateRemoteUserUID": true,
-  "runArgs": ["--cap-add=NET_RAW"],
+  "name": "Kali Workstation",
+  "dockerComposeFile": ["../compose.yaml"],
+  "service": "kali",
+  "workspaceFolder": "/home/kali", 
+  "remoteUser": "kali",
+  "shutdownAction": "stopCompose",
+  "forwardPorts": [2222, 3389],
   "customizations": {
     "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "zsh"
+      },
       "extensions": [
         "ms-python.python",
         "ms-vscode.cpptools",
+        "ms-azuretools.vscode-docker",
         "ms-vscode.hexeditor"
       ]
     }

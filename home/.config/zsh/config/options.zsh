@@ -1,0 +1,1 @@
+setopt autocd appendhistory histignorealldups sharehistory

@@ -1,65 +1,86 @@
-
-name: agentic
+name: kali-workstation
 
 services:
-    kali:
-        build:
-            context: .
-            dockerfile: .devcontainer/kali.Dockerfile
-            target: final
-            args:
-                KALI_USER: kali
-                KALI_UID: 1000
-                KALI_GID: 1000
-                INSTALL_RDP: ${INSTALL_RDP:-1}
+  kali:
+    build:
+      context: .
+      dockerfile: .devcontainer/Dockerfile
+      args:
+        KALI_USER: ${KALI_USER:-kali}
+        KALI_UID: ${KALI_UID:-1000}
+        KALI_GID: ${KALI_GID:-1000}
+        TZ: ${TZ:-Etc/UTC}
+        INSTALL_XRDP: ${INSTALL_XRDP:-0}
+    image: kali-workstation:local
+    container_name: ${CONTAINER_NAME:-kali-workstation}
+    hostname: ${KALI_HOSTNAME:-kali}
+    init: true
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+    # The persistent user home is the primary interactive workspace.
+    working_dir: /home/${KALI_USER:-kali}
+    environment:
+      KALI_USER: ${KALI_USER:-kali}
+      TZ: ${TZ:-Etc/UTC}
+      ENABLE_SSH: ${ENABLE_SSH:-1}
+      ENABLE_XRDP: ${ENABLE_XRDP:-0}
+      RDP_PASSWORD: ${RDP_PASSWORD:-}
+      ENABLE_POSTGRESQL: ${ENABLE_POSTGRESQL:-0}
+      ENABLE_REDIS: ${ENABLE_REDIS:-0}
+      TERM: xterm-256color
+    ports:
+      - "127.0.0.1:${SSH_PORT:-2222}:22"
+      - "127.0.0.1:${XRDP_PORT:-3389}:3389"
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    volumes:
+      - ./home:/home/${KALI_USER:-kali}
+      - ./home/Documents:/workspace
+      - ./home/tools:/opt/custom-tools
+      - ./.local:/home/${KALI_USER:-kali}/.local
+      - ./home/vpns:/root/vpns:ro
+      - ./home/wordlists:/usr/share/wordlists:ro
+      - ./.ssh/authorized_keys:/etc/ssh/authorized_keys:ro
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/workstation-healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    networks:
+      - workstation
 
-        image: agentic-kali:latest
-        container_name: agentic-kali
-        hostname: kali
+  postgres:
+    image: postgres:16-alpine
+    profiles: ["postgres"]
+    environment:
+      POSTGRES_USER: kali
+      POSTGRES_PASSWORD: kali
+      POSTGRES_DB: kali
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - workstation
 
-        init: true
-        stdin_open: true
-        tty: true
+  redis:
+    image: redis:7-alpine
+    profiles: ["redis"]
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    networks:
+      - workstation
 
-        working_dir: /workspace
+networks:
+  workstation:
+    driver: bridge
+  lab:
+    driver: bridge
+    internal: true
 
-        command: ["sleep", "infinity"]
-
-        environment:
-            TZ: ${TZ:-UTC}
-            HTB_TOKEN: ${HTB_TOKEN:-}
-            TERM: xterm-256color
-            ENABLE_RDP: ${ENABLE_RDP:-1}
-            RDP_PASSWORD: ${RDP_PASSWORD:-}
-
-        network_mode: host
-        cap_add:
-            - NET_RAW
-            - NET_ADMIN
-            - SYS_PTRACE
-
-        devices:
-            - /dev/net/tun:/dev/net/tun
-
-        # sysctls:
-        #     net.ipv4.ip_forward: "1"
-
-        shm_size: 1gb
-
-        ulimits:
-            nofile:
-                soft: 65536
-                hard: 65536
-
-        volumes:
-            - ./workspace:/workspace
-            - ./tools:/home/${KALI_USER:-kali}/tools
-            - ./wordlists:/home/${KALI_USER:-kali}/wordlists
-            - ./vpns:/home/${KALI_USER:-kali}/vpns
-            - ./.ssh/authorized_keys:/run/authorized_keys:ro
-
-        # ports:
-        #     - "127.0.0.1:2222:22"
-        #     - "127.0.0.1:3389:3389"
-
-        restart: unless-stopped
+volumes:
+  postgres-data:
+  redis-data:

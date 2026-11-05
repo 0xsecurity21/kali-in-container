@@ -1,90 +1,106 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-echo "[agentic] Starting Kali services..."
+# Use the standard ~/.zshrc. Older images exported ZDOTDIR; do not let it
+# bypass Kali's default startup file for the persisted kali account.
+unset ZDOTDIR
 
-KALI_USER="${KALI_USER:-kali}"
+user="${KALI_USER:-kali}"
+for flag in ENABLE_SSH ENABLE_XRDP ENABLE_POSTGRESQL ENABLE_REDIS; do
+  value="${!flag:-0}"
+  [[ "$value" == "0" || "$value" == "1" ]] || { echo "$flag must be 0 or 1" >&2; exit 2; }
+done
+id "$user" >/dev/null 2>&1 || { echo "User '$user' does not exist" >&2; exit 1; }
 
-# Validate user
-if ! id "$KALI_USER" >/dev/null 2>&1; then
-    echo "[agentic] ERROR: User '$KALI_USER' does not exist."
-    exit 1
-fi
-
-KALI_HOME="$(getent passwd "$KALI_USER" | cut -d: -f6)"
-KALI_GROUP="$(id -gn "$KALI_USER")"
-
-# Bind-mounted dirs are created root-owned by Docker; hand them to the user.
-for dir in /workspace "$KALI_HOME/tools" "$KALI_HOME/wordlists"; do
-    [[ -d "$dir" ]] && chown "$KALI_USER:$KALI_GROUP" "$dir" 2>/dev/null || true
+home_dir="$(getent passwd "$user" | cut -d: -f6)"
+required=("$home_dir" /workspace /opt/custom-tools /root/vpns /usr/share/wordlists)
+for path in "${required[@]}"; do
+  [[ -d "$path" ]] || { echo "Missing required mount/directory: $path" >&2; exit 1; }
 done
 
-# ------------------------------------------------------------
-# SSH
-# ------------------------------------------------------------
-mkdir -p /run/sshd
-ssh-keygen -A
+# Adjust mount roots only, never recursively modify user data.
+for path in "$home_dir" /workspace /opt/custom-tools; do
+  if [[ "$(stat -c '%u' "$path")" == "0" ]]; then
+    chown "$user:$(id -gn "$user")" "$path" 2>/dev/null || \
+      echo "WARNING: cannot adjust ownership of $path; verify KALI_UID/KALI_GID." >&2
+  fi
+done
 
-if [[ -f /run/authorized_keys ]]; then
-    install -d -m 700 \
-        -o "$KALI_USER" \
-        -g "$KALI_GROUP" \
-        "$KALI_HOME/.ssh"
+# A bind-mounted home can be empty after recreation. Seed a non-interactive
+# startup file so zsh never falls back to zsh-newuser-install.
+if [[ ! -e "$home_dir/.zshrc" ]]; then
+  if [[ -f /etc/skel/.zshrc ]]; then
+    cp /etc/skel/.zshrc "$home_dir/.zshrc"
+  else
+    printf '%s\n' '# Kali workstation zsh startup file.' > "$home_dir/.zshrc"
+  fi
+  cat >> "$home_dir/.zshrc" <<EOF
 
-    install -m 600 \
-        -o "$KALI_USER" \
-        -g "$KALI_GROUP" \
-        /run/authorized_keys \
-        "$KALI_HOME/.ssh/authorized_keys"
-
-    echo "[agentic] SSH public key installed."
-elif [[ -d /run/authorized_keys ]]; then
-    echo "[agentic] WARNING: /run/authorized_keys is a directory."
-    echo "[agentic] WARNING: host file .ssh/authorized_keys is probably missing."
-else
-    echo "[agentic] WARNING: No authorized_keys mounted."
+# Persistent workstation customizations.
+if [ -f "$home_dir/.config/zsh/zshrc" ]; then
+    . "$home_dir/.config/zsh/zshrc"
+fi
+EOF
+  chown "$user:$(id -gn "$user")" "$home_dir/.zshrc" 2>/dev/null || true
 fi
 
-/usr/sbin/sshd
+runtime_config=/run/supervisord-workstation.conf
+cp /etc/supervisor/conf.d/workstation.conf "$runtime_config"
+# The service manager remains root for SSH/XRDP, but the user's command does not.
+sed -i "/^\[program:main\]/a user=${user}" "$runtime_config"
+printf '#!/usr/bin/env bash\nexec ' > /run/workstation-main
+printf '%q ' "$@" >> /run/workstation-main
+printf '\n' >> /run/workstation-main
+chmod 0755 /run/workstation-main
 
-echo "[agentic] SSH server started on port 22."
+if [[ "${ENABLE_SSH:-1}" == "1" ]]; then
+  sed -i "s/^AllowUsers .*/AllowUsers ${user}/" /etc/ssh/sshd_config.d/workstation.conf
+  /usr/local/libexec/configure-ssh
+  cat >> "$runtime_config" <<'EOF'
 
-# ------------------------------------------------------------
-# RDP
-# ------------------------------------------------------------
-if [[ "${ENABLE_RDP:-0}" == "1" ]]; then
-
-    if command -v xrdp >/dev/null 2>&1; then
-
-        # xrdp authenticates through PAM, so the user needs a password.
-        if [[ -n "${RDP_PASSWORD:-}" ]]; then
-            echo "${KALI_USER}:${RDP_PASSWORD}" | chpasswd
-            echo "[agentic] RDP password set for '${KALI_USER}'."
-        else
-            echo "[agentic] WARNING: RDP_PASSWORD is empty; RDP login will fail."
-        fi
-
-        mkdir -p /run/dbus /var/run/xrdp/sockdir
-        chown xrdp:xrdp /var/run/xrdp/sockdir 2>/dev/null || true
-        chmod 0755 /var/run/xrdp /var/run/xrdp/sockdir
-
-        dbus-uuidgen --ensure 2>/dev/null || true
-        dbus-daemon --system --fork || true
-
-        if ! pgrep -x xrdp-sesman >/dev/null; then
-            /usr/sbin/xrdp-sesman
-        fi
-        if ! pgrep -x xrdp >/dev/null; then
-            /usr/sbin/xrdp
-        fi
-
-        echo "[agentic] XRDP server started on port 3389."
-
-    else
-        echo "[agentic] WARNING: XRDP is not installed (rebuild with INSTALL_RDP=1)."
-    fi
+[program:sshd]
+command=/usr/sbin/sshd -D -e
+priority=10
+autostart=true
+autorestart=true
+startsecs=1
+stopasgroup=true
+killasgroup=true
+stdout_logfile=/dev/fd/1
+stdout_logfile_maxbytes=0
+stderr_logfile=/dev/fd/2
+stderr_logfile_maxbytes=0
+EOF
 fi
 
-echo "[agentic] Environment ready."
+if [[ "${ENABLE_XRDP:-0}" == "1" ]]; then
+  /usr/local/libexec/configure-xrdp
+  cat >> "$runtime_config" <<'EOF'
 
-exec "$@"
+[program:xrdp-sesman]
+command=/usr/sbin/xrdp-sesman --nodaemon
+priority=20
+autostart=true
+autorestart=true
+stdout_logfile=/dev/fd/1
+stdout_logfile_maxbytes=0
+stderr_logfile=/dev/fd/2
+stderr_logfile_maxbytes=0
+
+[program:xrdp]
+command=/usr/sbin/xrdp --nodaemon
+priority=21
+autostart=true
+autorestart=true
+stdout_logfile=/dev/fd/1
+stdout_logfile_maxbytes=0
+stderr_logfile=/dev/fd/2
+stderr_logfile_maxbytes=0
+EOF
+fi
+
+[[ "${ENABLE_POSTGRESQL:-0}" == "1" ]] && echo "PostgreSQL requested: use the compose 'postgres' profile service."
+[[ "${ENABLE_REDIS:-0}" == "1" ]] && echo "Redis requested: use the compose 'redis' profile service."
+printf 'Kali workstation ready: user=%s workspace=%s ssh=%s xrdp=%s\n' \
+  "$user" "$home_dir" "${ENABLE_SSH:-1}" "${ENABLE_XRDP:-0}"
+exec /usr/bin/supervisord -c "$runtime_config"

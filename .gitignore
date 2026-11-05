@@ -1,0 +1,25 @@
+# Local configuration and secrets
+.env
+
+# SSH: public keys may still identify users; review before intentionally adding one.
+.ssh/*
+!.ssh/authorized_keys
+
+# VPN profiles and credentials
+home/vpns/*
+!home/vpns/.gitkeep
+
+# Large, host-managed wordlists
+home/wordlists/*
+!home/wordlists/.gitkeep
+
+# Temporary files
+*.log
+*.tmp
+*.swp
+.DS_Store
+
+# Lab artifacts
+home/Documents/**/loot/
+home/Documents/**/screenshots/
+home/Documents/**/evidence/

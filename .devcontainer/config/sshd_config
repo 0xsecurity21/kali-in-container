@@ -1,0 +1,15 @@
+# Workstation SSH hardening. Host keys are generated at runtime.
+Port 22
+Protocol 2
+PermitRootLogin no
+PubkeyAuthentication yes
+AuthorizedKeysFile /etc/ssh/authorized_keys
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+ChallengeResponseAuthentication no
+UsePAM no
+X11Forwarding no
+AllowTcpForwarding yes
+PermitTunnel no
+AllowUsers kali
+Subsystem sftp /usr/lib/openssh/sftp-server
