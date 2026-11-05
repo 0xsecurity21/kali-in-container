@@ -1,0 +1,65 @@
+
+name: agentic
+
+services:
+    kali:
+        build:
+            context: .
+            dockerfile: .devcontainer/kali.Dockerfile
+            target: final
+            args:
+                KALI_USER: kali
+                KALI_UID: 1000
+                KALI_GID: 1000
+                INSTALL_RDP: ${INSTALL_RDP:-1}
+
+        image: agentic-kali:latest
+        container_name: agentic-kali
+        hostname: kali
+
+        init: true
+        stdin_open: true
+        tty: true
+
+        working_dir: /workspace
+
+        command: ["sleep", "infinity"]
+
+        environment:
+            TZ: ${TZ:-UTC}
+            HTB_TOKEN: ${HTB_TOKEN:-}
+            TERM: xterm-256color
+            ENABLE_RDP: ${ENABLE_RDP:-1}
+            RDP_PASSWORD: ${RDP_PASSWORD:-}
+
+        network_mode: host
+        cap_add:
+            - NET_RAW
+            - NET_ADMIN
+            - SYS_PTRACE
+
+        devices:
+            - /dev/net/tun:/dev/net/tun
+
+        # sysctls:
+        #     net.ipv4.ip_forward: "1"
+
+        shm_size: 1gb
+
+        ulimits:
+            nofile:
+                soft: 65536
+                hard: 65536
+
+        volumes:
+            - ./workspace:/workspace
+            - ./tools:/home/${KALI_USER:-kali}/tools
+            - ./wordlists:/home/${KALI_USER:-kali}/wordlists
+            - ./vpns:/home/${KALI_USER:-kali}/vpns
+            - ./.ssh/authorized_keys:/run/authorized_keys:ro
+
+        # ports:
+        #     - "127.0.0.1:2222:22"
+        #     - "127.0.0.1:3389:3389"
+
+        restart: unless-stopped

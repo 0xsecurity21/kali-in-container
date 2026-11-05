@@ -1,0 +1,21 @@
+{
+  "name": "Kali CTF Toolkit",
+  "build": {
+    "dockerfile": "../Dockerfile",
+    "context": ".."
+  },
+  "workspaceFolder": "/workspaces/ctf",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/ctf,type=bind,consistency=cached",
+  "remoteUser": "ctf",
+  "updateRemoteUserUID": true,
+  "runArgs": ["--cap-add=NET_RAW"],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-vscode.cpptools",
+        "ms-vscode.hexeditor"
+      ]
+    }
+  }
+}

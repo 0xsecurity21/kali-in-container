@@ -1,0 +1,38 @@
+{
+    "$schema": "https://opencode.ai/v2/config.json",
+    "theme": {
+        "name": "matrix"
+    },
+    "thinking": true,
+    "default_agent": "Plan",
+    "provider": {
+        "mlx-local": {
+            "npm": "@ai-sdk/openai-compatible",
+            "name": "MLX Local",
+            "options": {
+                // "baseURL": "http://localhost:18000/v1",
+                // "apiKey": "not-needed"
+            },
+            "models": {
+                // "FrostWolfAI/Frost-Cyber-Mini-1.0-MLX": {
+                //     "name": "Frost Cyber Mini"
+                // }
+            }
+        }
+    },
+    "permissions": {
+        "lsp": "allow",
+        "todowrite": "allow",
+        "edit": "ask",
+        "bash": {
+            "*": "ask"
+        },
+        "webfetch": "allow"
+    },
+    "session": {
+        "autoSave": true,
+        "compress": true
+    },
+    "mcp": {},
+    "experimental": {}
+}
