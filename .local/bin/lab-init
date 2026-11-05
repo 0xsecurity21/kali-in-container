@@ -1,7 +1,0 @@
-#!/usr/bin/env bash
-set -Eeuo pipefail
-[[ $# -eq 1 ]] || { echo "Usage: lab-init <name>" >&2; exit 2; }
-path="$HOME/Documents/CTF/$1"
-mkdir -p "$path"/{notes,scans,loot}
-printf '# %s\n' "$1" > "$path/notes/README.md"
-printf '%s\n' "Created $path"
