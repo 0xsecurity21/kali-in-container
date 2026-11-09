@@ -52,6 +52,17 @@ Implement and maintain the following directory structure:
 │   ├── devcontainer.json
 │   ├── Dockerfile
 │   ├── entrypoint.sh
+|   ├── .ssh/
+|   ├── .local/
+|   │   ├── bin/
+|   │   │   ├── update-tools
+|   │   │   ├── vpn-connect
+|   │   │   ├── htb
+|   │   │   └── lab-init
+|   │   │
+|   │   └── share/
+|   │       └── zsh/
+│   └── authorized_keys
 │   ├── config/
 │   │   ├── sshd_config
 │   │   └── supervisord.conf
@@ -59,11 +70,7 @@ Implement and maintain the following directory structure:
 │       ├── install-tools.sh
 │       ├── configure-ssh.sh
 │       ├── configure-xrdp.sh
-│       └── healthcheck.sh
-│
-├── .ssh/
-│   └── authorized_keys
-│
+│       └── healthcheck.sh│
 ├── home/
 │   ├── Documents/
 │   │   ├── HTB/
@@ -118,15 +125,6 @@ Implement and maintain the following directory structure:
 |   │   │
 |   │   └── opencode/
 │
-├── .local/
-│   ├── bin/
-│   │   ├── update-tools
-│   │   ├── vpn-connect
-│   │   ├── htb
-│   │   └── lab-init
-│   │
-│   └── share/
-│       └── zsh/
 │
 ├── .env
 ├── .env.example
@@ -203,7 +201,7 @@ Support environment variables:
 
 ```dotenv
 ENABLE_SSH=1
-ENABLE_XRDP=0
+ENABLE_XRDP=1
 ENABLE_POSTGRESQL=0
 ENABLE_REDIS=0
 ```
@@ -227,7 +225,7 @@ Implement SSH key-based authentication.
 Host directory:
 
 ```text
-.ssh/authorized_keys
+.devcontainer/.ssh/authorized_keys
 ```
 
 Container configuration:

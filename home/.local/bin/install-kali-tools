@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Install explicitly requested packages in the current disposable container.
+set -Eeuo pipefail
+
+[[ $# -gt 0 ]] || { echo "Usage: install-kali-tools <package> [package ...]" >&2; exit 2; }
+sudo apt-get update
+sudo apt-get install -y --no-install-recommends "$@"
+echo "Installed packages are disposable. Add regular tools to .devcontainer/scripts/install-tools.sh and rebuild to keep the setup reproducible."

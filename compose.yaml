@@ -40,10 +40,11 @@ services:
       - ./home:/home/${KALI_USER:-kali}
       - ./home/Documents:/workspace
       - ./home/tools:/opt/custom-tools
-      - ./.local:/home/${KALI_USER:-kali}/.local
+      - ./.devcontainer/ssh:/etc/ssh/hostkeys
       - ./home/vpns:/root/vpns:ro
       - ./home/wordlists:/usr/share/wordlists:ro
-      - ./.ssh/authorized_keys:/etc/ssh/authorized_keys:ro
+      # Mount only the selected host public key; private keys never enter the container.
+      - ${SSH_PUBLIC_KEY_PATH:-${HOME}/.ssh/id_ed25519.pub}:/etc/ssh/authorized_keys:ro
     healthcheck:
       test: ["CMD", "/usr/local/bin/workstation-healthcheck"]
       interval: 30s

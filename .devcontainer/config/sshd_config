@@ -4,6 +4,9 @@ Protocol 2
 PermitRootLogin no
 PubkeyAuthentication yes
 AuthorizedKeysFile /etc/ssh/authorized_keys
+HostKey /etc/ssh/hostkeys/ssh_host_ed25519_key
+HostKey /etc/ssh/hostkeys/ssh_host_ecdsa_key
+HostKey /etc/ssh/hostkeys/ssh_host_rsa_key
 PasswordAuthentication no
 KbdInteractiveAuthentication no
 ChallengeResponseAuthentication no

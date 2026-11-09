@@ -1,9 +1,28 @@
 # Local configuration and secrets
 .env
+.env.*
+!.env.example
 
-# SSH: public keys may still identify users; review before intentionally adding one.
-.ssh/*
-!.ssh/authorized_keys
+# Legacy project-local SSH material is not used; Compose mounts a selected
+# host public key directly from ~/.ssh instead.
+.ssh/
+.devcontainer/.ssh/
+.devcontainer/ssh/*
+!.devcontainer/ssh/.gitkeep
+
+# Runtime state and caches from interactive desktop/SSH sessions. These stay on
+# the host for persistence but are machine-specific and must not be committed.
+home/.cache/
+home/.dbus/
+home/.ICEauthority
+home/.bash_history
+home/.config/dconf/
+home/.config/Thunar/
+home/.config/xfce4/
+home/thinclient_drives/
+
+# Shell history can contain commands with credentials.
+home/.config/zsh/.zsh_history
 
 # VPN profiles and credentials
 home/vpns/*
@@ -23,3 +42,4 @@ home/wordlists/*
 home/Documents/**/loot/
 home/Documents/**/screenshots/
 home/Documents/**/evidence/
+home/.sudo_as_admin_successful

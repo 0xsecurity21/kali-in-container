@@ -15,9 +15,9 @@ A disposable, native-ARM64 Kali Rolling workstation for Docker Desktop on macOS.
 git clone <repository-url> AgenticOffensive
 cd AgenticOffensive
 cp .env.example .env                 # do not overwrite an existing .env
-mkdir -p .ssh home/{Documents,tools,vpns,wordlists}
-chmod 700 .ssh
-printf '%s\n' "$(cat ~/.ssh/id_ed25519.pub)" > .ssh/authorized_keys
+mkdir -p home/{Documents,tools,vpns,wordlists}
+# The default host key is ~/.ssh/id_ed25519.pub. Set SSH_PUBLIC_KEY_PATH in
+# .env if you use another public-key file.
 mkdir -p home/wordlists/{dirb,dirbuster,metasploit,SecLists}
 docker compose up -d --build
 ```
@@ -28,12 +28,12 @@ If this checkout already has `.env`, reconcile its values with `.env.example` ra
 
 Copy `.env.example` for documented safe defaults. `KALI_UID` and `KALI_GID` should match the intended container-side owner of bind-mounted files. Changes to `INSTALL_XRDP` or user IDs require `docker compose build --no-cache`; runtime service flags only require recreation.
 
-| Variable | Purpose |
-| --- | --- |
-| `ENABLE_SSH` | Start key-only SSH (default `1`) |
-| `ENABLE_XRDP` / `INSTALL_XRDP` | Start/build optional XFCE + XRDP (both must be `1`) |
+| Variable                             | Purpose                                              |
+| ------------------------------------ | ---------------------------------------------------- |
+| `ENABLE_SSH`                         | Start key-only SSH (default `1`)                     |
+| `ENABLE_XRDP` / `INSTALL_XRDP`       | Start/build optional XFCE + XRDP (both must be `1`)  |
 | `ENABLE_POSTGRESQL` / `ENABLE_REDIS` | Documents intent to use the matching Compose profile |
-| `SSH_PORT` / `XRDP_PORT` | Localhost host ports |
+| `SSH_PORT` / `XRDP_PORT`             | Localhost host ports                                 |
 
 For XRDP, add a strong `RDP_PASSWORD` only to your ignored `.env`; it is required when XRDP starts and is never shown in `.env.example`.
 
@@ -49,7 +49,7 @@ docker compose logs -f kali
 # `-u kali` matters: Docker Compose exec otherwise uses root.
 docker compose exec -u kali kali zsh
 
-# Connect remotely with the key in .ssh/authorized_keys.
+# Connect with your existing host private key.
 ssh kali@localhost -p 2222
 
 # Stop containers without deleting persistent bind mounts or database volumes.
@@ -57,7 +57,7 @@ docker compose down
 docker compose down -v              # also removes optional PostgreSQL/Redis data only
 ```
 
-Ports bind to `127.0.0.1`, not all host interfaces. SSH accepts only keys in `.ssh/authorized_keys`; password and root login are disabled.
+Ports bind to `127.0.0.1`, not all host interfaces. SSH reads the selected host public key (default: `~/.ssh/id_ed25519.pub`); password and root login are disabled. Only that public key is mounted—private keys never enter the container.
 
 Open in VS Code with **Dev Containers: Reopen in Container**. It reuses the `kali` Compose service and opens the persistent user home, `/home/kali`. Lab documents are at `/home/kali/Documents`; `/workspace` remains a compatibility mount for that same directory.
 
@@ -75,16 +75,15 @@ Zsh loads Kali's standard `~/.zshrc` first, then sources the persistent workstat
 
 ## Persistent paths
 
-| Host path | Container path | Mode |
-| --- | --- | --- |
-| `home/` | `/home/kali` | read/write |
+| Host path         | Container path                          | Mode       |
+| ----------------- | --------------------------------------- | ---------- |
+| `home/`           | `/home/kali`                            | read/write |
 | `home/Documents/` | `/home/kali/Documents` and `/workspace` | read/write |
-| `home/tools/` | `/opt/custom-tools` | read/write |
-| `.local/` | `/home/kali/.local` | read/write |
-| `home/vpns/` | `/root/vpns` | read-only |
-| `home/wordlists/` | `/usr/share/wordlists` | read-only |
+| `home/tools/`     | `/opt/custom-tools`                     | read/write |
+| `home/vpns/`      | `/root/vpns`                            | read-only  |
+| `home/wordlists/` | `/usr/share/wordlists`                  | read-only  |
 
-Put executable custom programs in `home/tools/bin`; it is on `PATH` as `/opt/custom-tools/bin`. The `.local/bin` helpers provide `vpn-connect`, `htb`, `lab-init`, and `update-tools`.
+Put executable custom programs in `home/tools/bin`; it is on `PATH` as `/opt/custom-tools/bin`. The `home/.local/bin` helpers provide `vpn-connect`, `htb`, `lab-init`, and `update-tools`.
 
 ## VPN and wordlists
 
@@ -97,14 +96,22 @@ vpn-connect htb/profile.ovpn
 
 The container has only `NET_ADMIN` and the TUN device—never privileged mode. Docker Desktop networking remains NAT; host networking and macvlan are deliberately not enabled. For isolated application labs, attach services to the declared internal `lab` network in a separate Compose override.
 
-Download and update wordlists yourself on the host. Examples:
+Prepare the Kali-compatible host layout without downloading or installing any container packages:
 
 ```bash
-git clone --depth 1 https://github.com/danielmiessler/SecLists.git home/wordlists/SecLists
+./scripts/prepare-wordlists.sh
+```
+
+It creates the Kali-style directories `dirb`, `dirbuster`, `fern-wifi`, `legion`, `metasploit`, `seclists`, and `wfuzz`. `SecLists` is a compatibility symlink to the lowercase Kali-style `seclists` path. Populate the expected files (`dnsmap.txt`, `fasttrack.txt`, `john.lst`, `nmap.lst`, `rockyou.txt.gz`, `sqlmap.txt`, and `wifite.txt`) only with data you intentionally obtain.
+
+For example:
+
+```bash
+git clone --depth 1 https://github.com/danielmiessler/SecLists.git home/wordlists/seclists
 # Put a legally obtained rockyou.txt or rockyou.txt.gz in home/wordlists/
 ```
 
-Expected paths are `/usr/share/wordlists/SecLists` and, when provided, `/usr/share/wordlists/rockyou.txt`. No wordlists are downloaded during build or startup.
+Expected paths are `/usr/share/wordlists/seclists` (also available as `SecLists`) and, when provided, `/usr/share/wordlists/rockyou.txt`. No wordlists are downloaded during image build or container startup.
 
 ## Optional services and desktop
 
@@ -128,4 +135,7 @@ docker compose logs kali
 
 If the bind-mounted workspace is unwritable, align `KALI_UID`/`KALI_GID` and rebuild. The entrypoint only adjusts mount-root ownership and never recursively changes host files. On Docker Desktop, verify file sharing and TUN support if OpenVPN fails.
 
-To rebuild the disposable image, use `docker compose down && docker compose up -d --build`. Do **not** delete `home/`, `.local/`, `.ssh/authorized_keys`, or your ignored `.env` unless you intend to discard that host data.
+To rebuild the disposable image, use `docker compose down && docker compose up -d --build`. Do **not** delete `home/` or your ignored `.env` unless you intend to discard that host data.
+
+<!-- ssh -D 2024 -f -C -q -N kali@localhost -p 2222 -->
+<!-- echo "10.129.67.117 management.htb" | sudo tee -a /etc/hosts -->

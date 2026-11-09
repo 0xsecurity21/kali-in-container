@@ -2,8 +2,13 @@
 .git
 .env
 .ssh
-.local
-home
+.devcontainer/.ssh
+.devcontainer/ssh
+/home
+/scripts
 .DS_Store
 *.log
 *.tmp
+AGENTS.md
+README.md
+opencode.jsonc
