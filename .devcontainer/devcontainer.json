@@ -2,9 +2,13 @@
   "name": "Kali Workstation",
   "dockerComposeFile": ["../compose.yaml"],
   "service": "kali",
-  "workspaceFolder": "/home/kali", 
+  "workspaceFolder": "/home/kali",
   "remoteUser": "kali",
   "shutdownAction": "stopCompose",
+  // The kali user stays uid 1000, matching the ownership Docker Desktop
+  // presents for the bind-mounted ./home tree. Remapping to the macOS uid
+  // makes every persisted file unwritable.
+  "updateRemoteUserUID": false,
   "forwardPorts": [2222, 3389],
   "customizations": {
     "vscode": {

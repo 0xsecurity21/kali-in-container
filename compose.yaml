@@ -11,7 +11,12 @@ services:
         KALI_GID: ${KALI_GID:-1000}
         TZ: ${TZ:-Etc/UTC}
         INSTALL_XRDP: ${INSTALL_XRDP:-0}
+        INSTALL_PENTEST: ${INSTALL_PENTEST:-1}
+        INSTALL_DEV: ${INSTALL_DEV:-0}
+        INSTALL_PROXY: ${INSTALL_PROXY:-1}
     image: kali-workstation:local
+    # linux/arm64 on Apple Silicon; set X_ARCH=amd64 only for x86-only tooling.
+    platform: linux/${X_ARCH:-arm64}
     container_name: ${CONTAINER_NAME:-kali-workstation}
     hostname: ${KALI_HOSTNAME:-kali}
     init: true
@@ -22,6 +27,7 @@ services:
     working_dir: /home/${KALI_USER:-kali}
     environment:
       KALI_USER: ${KALI_USER:-kali}
+      KALI_PASSWORD: ${KALI_PASSWORD:-}
       TZ: ${TZ:-Etc/UTC}
       ENABLE_SSH: ${ENABLE_SSH:-1}
       ENABLE_XRDP: ${ENABLE_XRDP:-0}

@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Connect an OpenVPN profile from the read-only /root/vpns mount.
+# /root is mode 0700, so every check goes through sudo (passwordless here).
+set -Eeuo pipefail
+
+if [[ $# -ne 1 ]]; then
+    echo "usage: vpn-connect <htb|thm|other>/<profile>.ovpn" >&2
+    exit 64
+fi
+
+profile="/root/vpns/$1"
+if ! sudo test -f "$profile"; then
+    echo "profile not found: ${profile}" >&2
+    echo "available:" >&2
+    sudo find /root/vpns -maxdepth 2 -name '*.ovpn' 2>/dev/null | sed 's|^/root/vpns/|  |' >&2
+    exit 1
+fi
+
+sudo openvpn --config "$profile" --daemon --log /tmp/openvpn.log --writepid /tmp/openvpn.pid
+echo "openvpn started for ${1}; log: /tmp/openvpn.log"

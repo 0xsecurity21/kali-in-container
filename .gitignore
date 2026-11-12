@@ -16,6 +16,7 @@ home/.cache/
 home/.dbus/
 home/.ICEauthority
 home/.bash_history
+home/.vscode-server/
 home/.config/dconf/
 home/.config/Thunar/
 home/.config/xfce4/
@@ -43,3 +44,11 @@ home/Documents/**/loot/
 home/Documents/**/screenshots/
 home/Documents/**/evidence/
 home/.sudo_as_admin_successful
+
+# Local user workspace and tool state (never part of the repository)
+home/Documents/
+home/.local/share/
+home/.local/bin/wsdump
+home/.viminfo
+.devcontainer/zsh_history
+.devcontainer/zsh_history.example

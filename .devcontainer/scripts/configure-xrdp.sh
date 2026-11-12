@@ -11,8 +11,8 @@ if ! command -v startxfce4 >/dev/null 2>&1; then
   exit 1
 fi
 
-[[ -n "${RDP_PASSWORD:-}" ]] || { echo "XRDP requires RDP_PASSWORD in .env" >&2; exit 1; }
-echo "${KALI_USER:-kali}:${RDP_PASSWORD}" | chpasswd
+[[ -n "${RDP_PASSWORD:-}" || -n "${KALI_PASSWORD:-}" ]] || { echo "XRDP requires RDP_PASSWORD (or KALI_PASSWORD) in .env" >&2; exit 1; }
+echo "${KALI_USER:-kali}:${RDP_PASSWORD:-${KALI_PASSWORD}}" | chpasswd
 
 # xrdp reads its TLS key through the ssl-cert group.
 getent group ssl-cert >/dev/null || groupadd --system ssl-cert

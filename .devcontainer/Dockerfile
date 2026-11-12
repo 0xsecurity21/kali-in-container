@@ -5,6 +5,9 @@ ARG KALI_USER=kali
 ARG KALI_UID=1000
 ARG KALI_GID=1000
 ARG INSTALL_XRDP=0
+ARG INSTALL_PENTEST=1
+ARG INSTALL_DEV=0
+ARG INSTALL_PROXY=1
 ARG TZ=Etc/UTC
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
@@ -17,7 +20,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 COPY .devcontainer/scripts/install-tools.sh /usr/local/libexec/install-tools
 RUN chmod 0755 /usr/local/libexec/install-tools \
-    && /usr/local/libexec/install-tools "${INSTALL_XRDP}" \
+    && /usr/local/libexec/install-tools "${INSTALL_XRDP}" "${INSTALL_PENTEST}" "${INSTALL_DEV}" "${INSTALL_PROXY}" \
     && ln -snf "/usr/share/zoneinfo/${TZ}" /etc/localtime \
     && echo "${TZ}" > /etc/timezone
 
@@ -27,6 +30,9 @@ RUN if getent group "${KALI_GID}" >/dev/null; then \
         groupadd --gid "${KALI_GID}" "${KALI_USER}"; group_name="${KALI_USER}"; \
     fi \
     && if ! id "${KALI_USER}" >/dev/null 2>&1; then \
+        if getent passwd "${KALI_UID}" >/dev/null; then \
+            echo "KALI_UID ${KALI_UID} is already used by '$(getent passwd "${KALI_UID}" | cut -d: -f1)'; set a free KALI_UID in .env" >&2; exit 1; \
+        fi; \
         useradd --uid "${KALI_UID}" --gid "${group_name}" --create-home --shell /usr/bin/zsh "${KALI_USER}"; \
     fi \
     && usermod --append --groups sudo "${KALI_USER}" \
@@ -38,6 +44,7 @@ RUN if getent group "${KALI_GID}" >/dev/null; then \
     && chmod 0755 /workspace /opt/custom-tools
 
 COPY .devcontainer/config/sshd_config /etc/ssh/sshd_config.d/workstation.conf
+COPY .devcontainer/config/proxychains4.conf /etc/proxychains4.conf
 COPY .devcontainer/config/supervisord.conf /etc/supervisor/conf.d/workstation.conf
 COPY .devcontainer/scripts/configure-ssh.sh /usr/local/libexec/configure-ssh
 COPY .devcontainer/scripts/configure-xrdp.sh /usr/local/libexec/configure-xrdp

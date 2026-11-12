@@ -13,6 +13,13 @@ done
 id "$user" >/dev/null 2>&1 || { echo "User '$user' does not exist" >&2; exit 1; }
 
 home_dir="$(getent passwd "$user" | cut -d: -f6)"
+
+# Optional account password from .env. SSH stays key-only; the password is only
+# useful for console/RDP login. Never bake it into an image layer.
+if [[ -n "${KALI_PASSWORD:-}" ]]; then
+  printf '%s:%s\n' "$user" "$KALI_PASSWORD" | chpasswd
+fi
+
 required=("$home_dir" /workspace /opt/custom-tools /root/vpns /usr/share/wordlists)
 for path in "${required[@]}"; do
   [[ -d "$path" ]] || { echo "Missing required mount/directory: $path" >&2; exit 1; }
