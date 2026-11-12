@@ -51,6 +51,13 @@ nc -z 127.0.0.1 3389 && echo rdp-listening                  # only with ENABLE_X
 
 ### 3. Connect the HTB VPN
 
+Profiles and credentials are not in the repository. Copy yours into the ignored host directory first:
+
+```bash
+mkdir -p home/vpns/htb
+cp ~/Downloads/<profile>.ovpn home/vpns/htb/
+```
+
 ```bash
 docker compose exec -u kali kali vpn-connect htb/<profile>.ovpn
 docker compose exec kali sh -c 'ip -brief addr show tun0; ip route | grep tun0'
